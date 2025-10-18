@@ -3,7 +3,7 @@ from rich.console import Console
 
 console = Console()
 API = "http://localhost:8000/api/v1"
-DB_DSN = os.getenv("PG_DSN", "postgresql://postgres:postgres@localhost:5432/luna")
+DB_DSN = os.getenv("PG_DSN", "postgresql://postgres:postgres@db:5432/luna")
 
 def ok(msg): console.print(f"✅ {msg}", style="green")
 def warn(msg): console.print(f"⚠️ {msg}", style="yellow")
