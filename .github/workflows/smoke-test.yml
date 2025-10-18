@@ -28,7 +28,8 @@ jobs:
       - name: Run Smoke Test
         run: |
           docker exec luna-api pip install requests rich psycopg[binary]
-          docker exec luna-api python scripts/smoke_test.py
+          docker cp scripts/smoke_test.py luna-api:/tmp/smoke_test.py
+          docker exec luna-api python /tmp/smoke_test.py
 
       - name: Stop and clean up
         if: always()
