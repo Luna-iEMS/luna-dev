@@ -2,12 +2,26 @@ from fastapi import FastAPI
 from datetime import datetime
 import os
 
+# Import aller Router
+from routers import (
+    data_smartmeter,
+    data_market,
+    ingest,
+    rag_api,
+    recommend
+)
+# ------------------------------------------------------------------------------
+# FastAPI App Definition
+# ------------------------------------------------------------------------------
 app = FastAPI(
     title="Luna IEMS API",
     version="0.1.0",
-    description="Luna Intelligent Energy Management System – API Skeleton"
+    description="Luna Intelligent Energy Management System – API"
 )
 
+# ------------------------------------------------------------------------------
+# System Info Endpoint
+# ------------------------------------------------------------------------------
 @app.get("/api/v1/system/info")
 def system_info():
     return {
@@ -27,17 +41,19 @@ def system_info():
         }
     }
 
+# ------------------------------------------------------------------------------
+# Root Info
+# ------------------------------------------------------------------------------
 @app.get("/")
 def root():
     return {"message": "Luna IEMS API running. Visit /api/v1/system/info"}
 
-from routers import data_smartmeter
-app.include_router(data_smartmeter.router)
-
-from routers import data_smartmeter, data_market
+# ------------------------------------------------------------------------------
+# Router-Registrierungen
+# ------------------------------------------------------------------------------
 app.include_router(data_smartmeter.router)
 app.include_router(data_market.router)
-
-from routers import ingest, rag_api
 app.include_router(ingest.router)
 app.include_router(rag_api.router)
+app.include_router(recommend.router)  # 🆕 Hier wurde dein Recommender aktiviert!
+

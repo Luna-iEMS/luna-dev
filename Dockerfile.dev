@@ -1,22 +1,27 @@
-# ---- Base image ----
+# ---- Base Image ----
 FROM python:3.11-slim
-
-# Set working directory
-WORKDIR /app
 
 # ---- System dependencies ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl build-essential && \
-    rm -rf /var/lib/apt/lists/*
+    build-essential \
+    curl \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# ---- Install Python dependencies ----
-RUN pip install --upgrade pip && \
-    pip install fastapi[all] psycopg[binary] qdrant-client minio requests tika && \
-    pip install sentence-transformers==3.0.1 -i https://pypi.org/simple
+# ---- Arbeitsverzeichnis ----
+WORKDIR /app
 
-# ---- Copy all project files ----
-COPY . /app
+# ---- Dependencies ----
+COPY api/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# ---- Run the API ----
-CMD ["python", "main.py"]
+# ---- Code kopieren ----
+COPY api /app
+
+# ---- Expose Port ----
+EXPOSE 8000
+
+# ---- Startbefehl ----
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
