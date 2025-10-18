@@ -34,3 +34,4 @@ jobs:
       - name: Stop and clean up
         if: always()
         run: docker compose -f docker-compose.dev.yml down -v
+
