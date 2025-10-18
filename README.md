@@ -31,3 +31,8 @@ docker compose -f docker-compose.dev.yml down -v --remove-orphans
 docker system prune -af
 docker compose -f docker-compose.dev.yml up --build
 ```
+# Luna IEMS – Development Setup
+
+## Start
+```bash
+docker compose -f docker-compose.dev.yml up -d
