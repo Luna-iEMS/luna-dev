@@ -1,0 +1,5 @@
+Luna ist ein intelligentes Energiemanagement-System. 
+Es hilft Unternehmen und Haushalten, Energie effizient zu nutzen, 
+Kosten zu senken und CO₂-Emissionen zu reduzieren. 
+Luna kann Daten aus Stromzählern, Märkten und Wetterquellen analysieren 
+und Handlungsempfehlungen geben.

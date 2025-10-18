@@ -1,0 +1,22 @@
+# ---- Base image ----
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# ---- System dependencies ----
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+# ---- Install Python dependencies ----
+RUN pip install --upgrade pip && \
+    pip install fastapi[all] psycopg[binary] qdrant-client minio requests tika && \
+    pip install sentence-transformers==3.0.1 -i https://pypi.org/simple
+
+# ---- Copy all project files ----
+COPY . /app
+
+# ---- Run the API ----
+CMD ["python", "main.py"]
+

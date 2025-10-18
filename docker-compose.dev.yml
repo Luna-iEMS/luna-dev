@@ -1,0 +1,154 @@
+version: "3.9"
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: luna-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-luna}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - luna-net
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: luna-qdrant
+    ports:
+      - "${QDRANT_HTTP:-6333}:6333"
+      - "${QDRANT_GRPC:-6334}:6334"
+    volumes:
+      - qdrant:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-fsSL", "http://localhost:6333/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - luna-net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: luna-ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-fsSL", "http://localhost:11434/api/version"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+    networks:
+      - luna-net
+
+  tika:
+    image: apache/tika:latest
+    container_name: luna-tika
+    ports:
+      - "${TIKA_PORT:-9998}:9998"
+    healthcheck:
+      test: ["CMD", "curl", "-fsSL", "http://localhost:9998/tika/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - luna-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: luna-minio
+    command: server /data --console-address ":${MINIO_CONSOLE:-9001}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_API:-9000}:9000"
+      - "${MINIO_CONSOLE:-9001}:9001"
+    volumes:
+      - minio:/data
+    networks:
+      - luna-net
+
+  api:
+    build:
+      context: ./api
+    container_name: luna-api
+    depends_on:
+      db:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      ollama:
+        condition: service_started
+      tika:
+        condition: service_started
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=luna
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-admin123}
+      - QDRANT_HTTP=6333
+      - OLLAMA_PORT=11434
+      - TIKA_PORT=9998
+    ports:
+      - "${API_PORT:-8000}:8000"
+    working_dir: /app
+    healthcheck:
+      test: ["CMD", "curl", "-fsSL", "http://localhost:8000/api/v1/system/info"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./api:/app
+      - ./api/alembic.ini:/app/alembic.ini
+    networks:
+      - luna-net
+
+  worker:
+    build:
+      context: ./worker
+    container_name: luna-worker
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      PG_DSN: postgresql://postgres:postgres@db:5432/luna
+      SIM_SMARTMETER_INTERVAL_SEC: 60
+      SIM_MARKET_INTERVAL_SEC: 300
+      SIM_MARKETS: "EEX,APX"
+      SIM_PRODUCTS: "BASE,PEAK"
+      SIM_OUTPUT: "/data/sim"
+      SIM_USE_MINIO: "false"
+      SIM_METERS: "MTR-1,MTR-2"
+    volumes:
+      - ./worker:/app
+      - ./data/sim:/data/sim
+    working_dir: /app
+    command: ["python", "-u", "launch_simulations.py"]
+    networks:
+      - luna-net
+
+volumes:
+  pgdata:
+  qdrant:
+  ollama:
+  minio:
+
+networks:
+  luna-net:
+    name: luna-net
+    driver: bridge
