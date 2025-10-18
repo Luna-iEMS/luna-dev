@@ -1,105 +1,112 @@
-# 🌙 Luna-IEMS Projektplan
+# 🌙 Luna-IEMS – Projektplan & Fortschritt
 
-Willkommen zum zentralen Projekt- und Entwicklungsplan des **Luna-IEMS** Systems.  
-Dieses Dokument dient als Roadmap für Architektur, Entwicklung, Tests und Release.
-
----
-
-## 🧭 Ziel des Projekts
-Luna-IEMS ist ein intelligentes Energie-Informations- und Empfehlungssystem (IEMS), das
-Energiedaten automatisch sammelt, analysiert und über Dashboards zugänglich macht.
-Es kombiniert Simulationen (Smart-Meter, Marktpreise) mit KI-gestützter RAG-Analyse und
-Empfehlungs-Engine.
+[![Build Status](https://github.com/Luna-iEMS/iems-luna/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/Luna-iEMS/iems-luna/actions)
+[![Documentation](https://img.shields.io/badge/docs-online-blue)](https://luna-iems.github.io/iems-luna/)
+[![Version](https://img.shields.io/badge/version-v1.0.0-green)]()
 
 ---
 
-## 📊 Statusübersicht (Stand: Oktober 2025)
+## 🧭 Ziel
+**Luna-IEMS** ist ein intelligentes Energie-Informations- und Empfehlungssystem.  
+Es verbindet Echtzeit-Simulationen (Smart-Meter, Marktpreise) mit KI-basierter RAG-Analyse und Empfehlungssystemen.
 
-| Bereich | Status | Beschreibung |
-|----------|---------|--------------|
-| **API-Backend (FastAPI)** | ✅ Fertig | Läuft stabil mit allen Endpunkten |
-| **Postgres / TimescaleDB Schema** | ✅ Fertig | Tabellen & Migrationen erstellt |
-| **Smart-Meter Simulation** | ✅ Läuft | Schreibt periodisch Messwerte |
-| **Market-Simulation** | ✅ Läuft | Schreibt periodisch Marktpreise |
-| **RAG-System (Qdrant + Ollama)** | ✅ Aktiv | Beantwortet Fragen mit Zitaten |
-| **Admin-Tools & Healthchecks** | ✅ Implementiert | Smoke-Test grün |
-| **Empfehlungssystem** | ⚙️ In Arbeit | Placeholder-Modul aktiv |
-| **Frontend / Dashboards** | 🕓 Geplant | Noch nicht begonnen |
-| **CI/CD (Tests & Build)** | ✅ Aktiv | GitHub Actions erfolgreich |
-| **Dokumentation & Masterplan** | ✅ Online | Unter `/docs` und GitHub Pages |
+---
+
+## 📈 Gesamtfortschritt
+
+██████████████████████████░░░░ 85%
+
+> ✅ 85 % der MVP-Funktionen sind fertiggestellt  
+> 🧩 Recommender & Dashboards in Arbeit  
+
+---
+
+## 📊 Statusübersicht
+
+| Komponente | Status | Fortschritt |
+|-------------|:------:|:-----------:|
+| **API / Backend (FastAPI)** | 🟢 **Fertig** | ██████████ 100 % |
+| **Postgres / Timescale Schema** | 🟢 **Fertig** | ██████████ 100 % |
+| **Smart-Meter Simulation** | 🟢 **Fertig** | ██████████ 100 % |
+| **Market-Simulation** | 🟢 **Fertig** | ██████████ 100 % |
+| **RAG / KI-Komponente (Qdrant + Ollama)** | 🟢 **Fertig** | ██████████ 100 % |
+| **Empfehlungssystem (Recommender)** | 🟡 **In Arbeit** | ██████░░░░ 60 % |
+| **Frontend / Dashboard** | ⚪ **Geplant** | ███░░░░░░░ 30 % |
+| **CI/CD & Tests (GitHub Actions)** | 🟢 **Aktiv** | ██████████ 100 % |
+| **Dokumentation / Masterplan** | 🟢 **Online** | ██████████ 100 % |
 
 ---
 
 ## 🚀 Meilensteine
 
-### 🧩 **M1 – Systemgrundlage (erreicht)**
-- [x] FastAPI-Backend implementieren  
-- [x] Postgres / Timescale aufsetzen  
-- [x] Qdrant- und Ollama-Integration  
-- [x] CI-Pipeline (Smoke-Test)  
-- [x] Health-Checks / Migrations  
+### 🧩 M1 – Systemgrundlage ✅ *(abgeschlossen)*
+- [x] FastAPI-Backend implementiert  
+- [x] Postgres/Timescale eingerichtet  
+- [x] Qdrant & Ollama integriert  
+- [x] CI-Pipeline mit Smoke-Test aktiv  
+- [x] Healthchecks & Migrationen
 
-### ⚙️ **M2 – Simulation (erreicht)**
-- [x] Smart-Meter Worker erstellt  
-- [x] Market-Worker erstellt  
-- [x] Dual-Launcher (beide Simulationen parallel)  
-- [x] Daten in DB prüfen  
-- [x] Integration in API-Charts  
+### ⚙️ M2 – Simulation ✅ *(abgeschlossen)*
+- [x] Smart-Meter-Worker  
+- [x] Market-Worker  
+- [x] Dual-Launcher  
+- [x] Datenverifizierung (DB)  
 
-### 🧠 **M3 – RAG & KI (erreicht)**
+### 🧠 M3 – RAG & KI ✅ *(abgeschlossen)*
 - [x] Dokumenten-Ingestion (Tika)  
-- [x] Chunking + Vektorsuche (Qdrant)  
-- [x] RAG-Abfragen + Zitate  
-- [x] Lern-Feedback-Loop vorbereitet  
+- [x] Chunking & Embeddings  
+- [x] RAG-Abfragen mit Zitaten  
+- [x] Feedback-Loop vorbereitet  
 
-### 💡 **M4 – Empfehlungssystem (offen)**
-- [ ] Content-basierte Empfehlung aktivieren  
-- [ ] User-Feedback erfassen  
-- [ ] LinUCB-/Thompson-Sampling evaluieren  
-- [ ] Integration in Dashboard  
+### 💡 M4 – Empfehlungssystem 🟡 *(laufend)*
+- [x] Grundstruktur Recommender  
+- [ ] Content-basierte Logik aktivieren  
+- [ ] Feedback-Speicherung  
+- [ ] Bewertung + Ranking  
 
-### 📈 **M5 – Dashboard & Visualisierung (geplant)**
-- [ ] Customer-Dashboard (React + Tailwind)  
-- [ ] Admin-Dashboard mit Systemstatus  
-- [ ] Charts / Diagramme (Energie, Preise, Empfehlungen)  
+### 📈 M5 – Dashboard / Frontend ⚪ *(geplant)*
+- [ ] Kunden-Dashboard (React/Tailwind)  
+- [ ] Admin-Dashboard (Status & Charts)  
+- [ ] Chart-Visualisierung SmartMeter + Preise  
 
-### 🚢 **M6 – Release & Deployment**
-- [ ] CI-Release-Tagging (GitHub Actions)  
-- [ ] Docker Image + GitHub Packages  
-- [ ] Optionale Cloud Deployment (VPS / Railway / Render)  
-
----
-
-## 🧩 Task-Board (aktuell)
-
-| Kategorie | Task | Status |
-|------------|------|--------|
-| **Simulation** | Smart-Meter + Market parallel starten | ✅ |
-| **RAG** | Fragen mit Zitat beantworten | ✅ |
-| **Recommender** | Erste Empfehlungen generieren | ⚙️ |
-| **Docs** | GitHub Pages aktivieren | ✅ |
-| **Testing** | Smoke-Test grün halten | ✅ |
-| **Release** | Automatisches Tagging einrichten | 🕓 |
+### 🚢 M6 – Release / Deployment ⚪ *(geplant)*
+- [ ] Automatisches Tagging  
+- [ ] Docker Image Build  
+- [ ] Optionales Deployment (Railway/Render)  
 
 ---
 
-## 📦 Verlinkungen
+## 🧩 Offene Tasks (To-Do-Liste)
 
-- 🔗 [Technischer Masterplan](./luna_iems_technischer_masterplan_closed_gaps_v_1.md)  
-- 🔗 [Schema.sql](./schema.sql)  
-- 🔗 [Smoke Test (Skript)](../scripts/smoke_test.py)  
-- 🔗 [CI-Workflow](../.github/workflows/smoke-test.yml)  
-- 🔗 [GitHub Pages Website](https://monika-iems.github.io/iems-luna/)  
-
----
-
-## 🧭 Nächste Schritte
-- [ ] Empfehlungssystem fertigstellen  
-- [ ] Dashboard-Frontend beginnen  
-- [ ] Deployment & Monitoring  
-- [ ] CI Release-Pipeline erweitern  
+| Bereich | Aufgabe | Status |
+|----------|----------|--------|
+| Recommender | Content-basierten Algorithmus integrieren | ⏳ |
+| RAG | Test mit großen Dokumenten (>10 MB) | ⏳ |
+| Frontend | Dashboard UI starten | 🔲 |
+| Docs | README mit Status-Badge aktualisieren | ✅ |
+| CI | Release-Workflow einbauen | ⏳ |
 
 ---
 
-© 2025 Monika Pichlhöfer — _Luna IEMS Projekt_
+## 🧾 Wichtige Ressourcen
 
+| Thema | Datei / Link |
+|--------|---------------|
+| 🧠 Technischer Masterplan | [`docs/luna_iems_technischer_masterplan_closed_gaps_v_1.md`](./luna_iems_technischer_masterplan_closed_gaps_v_1.md) |
+| 🧩 Datenbankschema | [`docs/schema.sql`](./schema.sql) |
+| 🧪 Smoke-Test-Script | [`scripts/smoke_test.py`](../scripts/smoke_test.py) |
+| ⚙️ CI Workflow | [`.github/workflows/smoke-test.yml`](../.github/workflows/smoke-test.yml) |
+| 🌐 Website | [Luna-IEMS GitHub Pages](https://luna-iems.github.io/iems-luna/) |
+
+---
+
+## 📅 Nächste Schritte
+- [ ] Recommender-Modul finalisieren  
+- [ ] Dashboard Frontend entwickeln  
+- [ ] CI-Release-Tagging integrieren  
+- [ ] Deployment vorbereiten  
+
+---
+
+© 2025 Monika Pichlhöfer – *Luna IEMS*  
+„Luna denkt für dich mit.“
