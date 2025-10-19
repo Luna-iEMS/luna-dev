@@ -1,12 +1,36 @@
-import qdrant_client
-from qdrant_client.http import models as qm
+import requests
+from qdrant_client import QdrantClient
+from qdrant_client.models import VectorParams, Distance, PointStruct
 
-print("🔗 Connecting to Qdrant at luna_qdrant:6333 ...")
-c = qdrant_client.QdrantClient(host="luna_qdrant", port=6333)
+OLLAMA_URL = "http://ollama:11434/api/embed"
+QDRANT_URL = "http://qdrant:6333"
 
-print("🧠 Creating collection 'luna_chunks' (dim=384, cosine)...")
-c.recreate_collection(
-    collection_name="luna_chunks",
-    vectors_config=qm.VectorParams(size=384, distance=qm.Distance.COSINE)
+texts = [
+    "Tipps zum Energiesparen im Haushalt: Licht ausschalten, Geräte vom Strom trennen.",
+    "Nachhaltige Energiequellen wie Solarstrom helfen beim Senken der Stromkosten.",
+    "Moderne Smart-Meter-Systeme ermöglichen genaue Verbrauchsanalysen."
+]
+
+def get_embedding(text):
+    res = requests.post(OLLAMA_URL, json={"model": "nomic-embed-text", "input": text}, timeout=30)
+    res.raise_for_status()
+    data = res.json()
+    return data["embeddings"][0]
+
+client = QdrantClient(host="qdrant", port=6333)
+
+# 1️⃣ Collection anlegen
+client.recreate_collection(
+    collection_name="documents",
+    vectors_config=VectorParams(size=768, distance=Distance.COSINE)
 )
-print("✅ Collection created successfully.")
+
+# 2️⃣ Texte einfügen
+points = []
+for i, text in enumerate(texts):
+    embedding = get_embedding(text)
+    points.append(PointStruct(id=i+1, vector=embedding, payload={"text": text}))
+
+client.upsert(collection_name="documents", points=points)
+print("✅ Qdrant initialisiert – Collection 'documents' mit Beispieldaten angelegt.")
+

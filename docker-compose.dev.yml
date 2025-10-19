@@ -29,7 +29,6 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
-    # Healthcheck: prüft nur, ob Port offen ist (kein 200er-Zwang)
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 6333 || exit 1"]
       interval: 30s
@@ -67,7 +66,6 @@ services:
     restart: unless-stopped
     ports:
       - "9998:9998"
-    # Healthcheck: prüft, ob Port erreichbar ist
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 9998 || exit 1"]
       interval: 30s
@@ -88,7 +86,6 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    # Healthcheck: prüft, ob Port reagiert
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 11434 || exit 1"]
       interval: 30s
@@ -130,11 +127,13 @@ services:
       TIKA_PORT: 9998
       MINIO_HOST: minio
       MINIO_PORT: 9000
+      DOCS_PATH: /data/docs-luna
     ports:
       - "8000:8000"
     working_dir: /app
     volumes:
       - ./api:/app
+      - ./docs-luna:/home/mp/iems-luna/docs-luna 
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/docs || exit 1"]
       interval: 15s
