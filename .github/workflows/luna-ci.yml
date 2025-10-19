@@ -1,0 +1,59 @@
+name: Luna-IEMS CI
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]   # 🔁 auch Feature-Branches testen
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Run Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start containers
+        run: |
+          echo "🐳 Baue und starte Docker-Services..."
+          docker compose -f docker-compose.dev.yml up -d --build
+          echo "⏳ Warte auf Services (Qdrant, Tika, Ollama, API)..."
+          sleep 50
+          docker ps -a
+
+      - name: Check API health
+        run: |
+          echo "🌐 Prüfe API-Health..."
+          docker exec luna-api pip install --no-cache-dir requests rich psycopg[binary]
+          docker exec luna-api python - <<'EOF'
+import requests, time
+url = "http://localhost:8000/api/v1/system/info"
+for i in range(10):
+    try:
+        r = requests.get(url, timeout=5)
+        if r.ok:
+            print("✅ API erreichbar:", r.json()["service"])
+            break
+    except Exception as e:
+        print("🕓 Versuch", i+1, "fehlgeschlagen:", e)
+        time.sleep(5)
+else:
+    raise SystemExit("❌ API konnte nicht erreicht werden!")
+EOF
+
+      - name: Run Smoke Test
+        run: |
+          echo "🚀 Führe Smoke-Test aus..."
+          docker cp scripts/smoke_test.py luna-api:/tmp/smoke_test.py
+          docker exec luna-api python /tmp/smoke_test.py
+
+      - name: Stop and clean up
+        if: always()
+        run: |
+          echo "🧹 Stoppe Container und räume auf..."
+          docker compose -f docker-compose.dev.yml down -v
