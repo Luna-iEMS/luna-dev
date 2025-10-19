@@ -27,24 +27,19 @@ jobs:
           docker ps -a
 
       - name: Check API health
+        shell: bash
         run: |
           echo "🌐 Prüfe API-Health..."
           docker exec luna-api pip install --no-cache-dir requests rich psycopg[binary]
-          python3 <<EOF
-import requests, time
-url = "http://localhost:8000/api/v1/system/info"
-for i in range(10):
-    try:
-        r = requests.get(url, timeout=5)
-        if r.ok:
-            print("✅ API erreichbar:", r.json()["service"])
-            break
-    except Exception as e:
-        print("🕓 Versuch", i+1, "fehlgeschlagen:", e)
-        time.sleep(5)
-else:
-    raise SystemExit("❌ API konnte nicht erreicht werden!")
-EOF
+          for i in {1..10}; do
+            if docker exec luna-api curl -s http://localhost:8000/api/v1/system/info | grep -q "luna-api"; then
+              echo "✅ API erreichbar (Versuch $i)"
+              break
+            else
+              echo "🕓 Warte auf API... (Versuch $i)"
+              sleep 5
+            fi
+          done
 
       - name: Run Smoke Test
         run: |
