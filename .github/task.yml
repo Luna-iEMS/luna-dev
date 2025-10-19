@@ -1,0 +1,27 @@
+name: "🔧 Task"
+description: Erstelle einen technischen Task oder eine Teilaufgabe
+title: "[Task] "
+labels: ["task", "backend"]
+body:
+  - type: textarea
+    attributes:
+      label: Beschreibung
+      description: Was soll umgesetzt werden?
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Milestone
+      options:
+        - M1 – Infrastruktur
+        - M2 – Datenbank
+        - M3 – KI / RAG
+        - M4 – Ingest
+        - M5 – Simulation
+        - M6 – Recommender
+        - M7 – Frontends
+        - M8 – Sicherheit
+        - M9 – DX
+  - type: textarea
+    attributes:
+      label: Akzeptanzkriterien
+      description: Definition of Done (Tests, Funktion, Dokumentation)
