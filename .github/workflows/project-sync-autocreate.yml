@@ -1,0 +1,65 @@
+# .github/workflows/project-sync-autocreate.yml
+name: 🔄 Auto-Sync Project Plan to Issues & Board
+
+on:
+  push:
+    paths:
+      - 'docs/project-plan.yml'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  projects: write
+  contents: read
+
+jobs:
+  sync-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🧩 Install PyYAML for parsing
+        run: pip install pyyaml requests
+
+      - name: 🤖 Parse project-plan.yml and sync issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: Luna-iEMS
+          REPO: luna-dev
+          PROJECT_NAME: "🌙 Luna-IEMS Development Board"
+        run: |
+          import os, yaml, requests
+          from urllib.parse import quote
+
+          owner = os.getenv("OWNER")
+          repo = os.getenv("REPO")
+          token = os.getenv("GITHUB_TOKEN")
+          project = os.getenv("PROJECT_NAME")
+
+          def gh(api, method="GET", data=None):
+              headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+              r = requests.request(method, f"https://api.github.com/{api}", headers=headers, json=data)
+              if not r.ok:
+                  print("❌", r.status_code, r.text)
+              return r.json()
+
+          with open("docs/project-plan.yml") as f:
+              plan = yaml.safe_load(f)
+
+          for phase in plan.get("phases", []):
+              phase_name = phase["title"]
+              for task in phase.get("deliverables", []):
+                  issue_title = f"{phase_name}: {task}"
+                  issues = gh(f"repos/{owner}/{repo}/issues?state=all&per_page=100")
+                  if not any(i["title"] == issue_title for i in issues):
+                      print("🆕 Create issue:", issue_title)
+                      gh(f"repos/{owner}/{repo}/issues", "POST", {
+                          "title": issue_title,
+                          "body": f"Auto-generated from project-plan.yml\n\nPhase: **{phase_name}**\n\nDeliverable: `{task}`",
+                          "labels": ["auto-sync", "phase"]
+                      })
+                  else:
+                      print("✅ Exists:", issue_title)
+
+          print("🎯 Sync complete – issues up-to-date.")
