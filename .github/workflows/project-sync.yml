@@ -1,0 +1,33 @@
+# .github/workflows/project-sync.yml
+name: 🔄 Sync Project Plan to GitHub Board
+
+on:
+  push:
+    paths:
+      - 'docs/project-plan.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'   # jeden Montag 06:00 Uhr
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Parse YAML and update GitHub Project
+        uses: tibdex/github-app-token@v1
+        id: generate_token
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Sync Project Plan
+        uses: peter-evans/create-or-update-project@v3
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+          project-name: "🌙 Luna-IEMS Development Board"
+          body: |
+            🚀 Automatischer Sync aus [docs/project-plan.yml](docs/project-plan.yml)
+            _Letztes Update: ${{ github.event.head_commit.timestamp }}_

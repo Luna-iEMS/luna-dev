@@ -1,0 +1,26 @@
+# .github/project.yml
+name: 🌙 Luna-IEMS Development Board
+description: |
+  Automatisch synchronisiertes Projektboard basierend auf docs/project-plan.yml.
+  Jede Phase im Plan wird als Spalte mit Issues dargestellt.
+  CI/CD und Smoke Tests aktualisieren Status & Fortschritt.
+
+columns:
+  - name: Phase 1 – Fundament & Infrastruktur
+    description: "Docker Compose, Makefile, CI Lint & Smoke Tests"
+  - name: Phase 2 – Datenmodell & Migrationen
+    description: "DB-Schema, Alembic, Seeds, Governance"
+  - name: Phase 3 – KI / RAG / Persona Luna
+    description: "RAG, Embeddings, Prompt-Tuning, Evaluation"
+  - name: Phase 4 – Ingest & Worker
+    description: "Upload, Chunking, Deduplication"
+  - name: Phase 5 – Simulation & Adapter
+    description: "Smart-Meter & Marktpreise Simulation"
+  - name: Phase 6 – Empfehlung & Feedback
+    description: "Banditen, Events, Learning Dashboard"
+  - name: Phase 7 – Frontends
+    description: "Customer/Admin Dashboards, Rollen, Auth"
+  - name: Phase 8 – Sicherheit & Compliance
+    description: "Rate Limits, Upload Validation, AI-Act Docs"
+  - name: Phase 9 – Developer Experience & Release
+    description: "Docs, DX, Release Drafter, Smoke Reports"
