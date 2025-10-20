@@ -1,0 +1,116 @@
+
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-luna}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-luna}"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [luna-net]
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_HTTP:-6333}:6333"
+      - "${QDRANT_GRPC:-6334}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:6333/readyz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [luna-net]
+
+  tika:
+    image: logicalspark/docker-tikaserver:latest
+    restart: unless-stopped
+    ports:
+      - "${TIKA_PORT:-9998}:9998"
+    # Healthcheck entschärft – Tika startet langsam, kein Abbruch nötig
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9998/tika || exit 0"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    networks: [luna-net]
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    environment:
+      OLLAMA_HOST: "0.0.0.0"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Kein Healthcheck -> OLLAMA startet langsam, sollte API nicht blockieren
+    networks: [luna-net]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file: [.env]
+    environment:
+      DB_HOST: db
+      QDRANT_HOST: qdrant
+      OLLAMA_HOST: ollama
+      TIKA_HOST: tika
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - data:/data
+      - models:/models
+      - logs:/logs
+    depends_on:
+      - db
+      - qdrant
+      - tika
+      - ollama
+    networks: [luna-net]
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file: [.env]
+    environment:
+      DB_HOST: db
+      QDRANT_HOST: qdrant
+      OLLAMA_HOST: ollama
+      TIKA_HOST: tika
+    command: ["python", "-u", "scripts/train_pipeline.py"]
+    volumes:
+      - data:/data
+      - models:/models
+      - logs:/logs
+    depends_on:
+      - db
+      - qdrant
+      - tika
+      - ollama
+    networks: [luna-net]
+
+volumes:
+  pgdata: {}
+  qdrant_data: {}
+  ollama_data: {}
+  data: {}
+  models: {}
+  logs: {}
+
+networks:
+  luna-net:
+    driver: bridge

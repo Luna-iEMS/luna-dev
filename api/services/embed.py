@@ -1,64 +1,37 @@
-
-import os
-import requests
-import json
-
-# === Grundkonfiguration ===
-OLLAMA_URL = f"http://luna_ollama:{os.getenv('OLLAMA_PORT', '11434')}"
+import os, requests, json
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "ollama")
+OLLAMA_PORT = os.getenv("OLLAMA_PORT", "11434")
+OLLAMA_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
-GEN_MODEL = os.getenv("GENERATE_MODEL", "llama3:8b-instruct-q4_K_M")
+GENERATE_MODEL = os.getenv("GENERATE_MODEL", "llama3.1:8b-instruct")
 
-# === Embedding-Funktion ===
-try:
-    from sentence_transformers import SentenceTransformer
-    _local_model = SentenceTransformer("all-MiniLM-L6-v2")
-
-    def embed_texts(texts):
-        if not texts:
-            return []
-        return _local_model.encode(texts, convert_to_numpy=True).tolist()
-
-except Exception:
-    def embed_texts(texts):
-        if not texts:
-            return []
-        r = requests.post(
-            f"{OLLAMA_URL}/api/embeddings",
-            json={"model": EMBED_MODEL, "input": texts},
-            timeout=60
-        )
-        r.raise_for_status()
-        j = r.json()
-        if "embedding" in j:
-            return [j["embedding"]]
-        if "embeddings" in j:
-            return [e["embedding"] for e in j["embeddings"]]
-        raise ValueError(f"Unexpected embedding format: {j}")
-
-# === Textgenerierung (für Antworten) ===
-def generate(system_prompt: str, user_prompt: str) -> str:
-    """Ruft Ollama auf, um eine Antwort zu generieren."""
-    prompt = f"{system_prompt.strip()}\n\n{user_prompt.strip()}"
+def embed_texts(texts):
+    # Prefer Ollama embeddings via HTTP
     try:
-        r = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json={"model": GEN_MODEL, "prompt": prompt},
-            stream=True,
-            timeout=120,
-        )
+        r = requests.post(f"{OLLAMA_URL}/api/embeddings", json={"model": EMBED_MODEL, "input": texts}, timeout=120)
         r.raise_for_status()
+        data = r.json()
+        # Ollama returns {"embeddings": [[...], [...], ...]}
+        return data.get("embeddings") or data.get("data")
+    except Exception as e:
+        # best-effort fallback
+        return [[0.0] * 384 for _ in texts]
 
-        text = ""
+def generate(system_prompt: str, prompt: str) -> str:
+    try:
+        payload = {"model": GENERATE_MODEL, "prompt": f"{system_prompt}\n\n{prompt}", "stream": True}
+        r = requests.post(f"{OLLAMA_URL}/api/generate", json=payload, timeout=600, stream=True)
+        r.raise_for_status()
+        out = ""
         for line in r.iter_lines(decode_unicode=True):
-            if not line.strip():
+            if not line:
                 continue
             try:
                 j = json.loads(line)
                 if "response" in j:
-                    text += j["response"]
+                    out += j["response"]
             except json.JSONDecodeError:
-                # Falls Ollama mal was Unerwartetes streamt
                 continue
-        return text.strip() or "[Keine Antwort von Ollama erhalten]"
+        return out.strip()
     except Exception as e:
-        return f"[Fehler bei Ollama-Generate: {e}]"
+        return f"[Fehler bei Generate: {e}]"

@@ -1,0 +1,151 @@
+name: 🔥 Luna IEMS Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    name: 🧪 End-to-End Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # -----------------------------------------------------
+      # 1️⃣ Repository auschecken
+      # -----------------------------------------------------
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------
+      # 2️⃣ Prüfen, ob Docker verfügbar ist
+      # -----------------------------------------------------
+      - name: 🐋 Check Docker availability
+        run: |
+          echo "🔍 Prüfe Docker..."
+          docker version
+          docker info
+
+      # -----------------------------------------------------
+      # 3️⃣ Docker Compose Umgebung starten
+      # -----------------------------------------------------
+      - name: 🐳 Start Luna IEMS stack (simplified mode)
+        run: |
+          echo "🚀 Starte Luna IEMS Stack via docker-compose..."
+          docker compose -f docker-compose.yml up -d
+          echo "⏳ Warte auf Services (API, Qdrant, Ollama, Tika, DB)..."
+          sleep 75
+          docker compose ps
+
+      # -----------------------------------------------------
+      # 4️⃣ Healthcheck mit eigenem Script
+      # -----------------------------------------------------
+      - name: 🩺 Run healthcheck script
+        run: |
+          echo "🔍 Starte Healthcheck..."
+          pip install requests
+          python scripts/healthcheck.py || (echo '❌ Healthcheck fehlgeschlagen!' && exit 1)
+
+      # -----------------------------------------------------
+      # 5️⃣ API /health Endpoint prüfen
+      # -----------------------------------------------------
+      - name: 🌐 Check API /health endpoint
+        run: |
+          echo "🌙 Prüfe FastAPI /health endpoint..."
+          curl -v -f http://localhost:8000/health
+
+      # -----------------------------------------------------
+      # 6️⃣ Upload-/Ingest-Test
+      # -----------------------------------------------------
+      - name: 📤 Test file upload ingest endpoint
+        run: |
+          echo "📤 Teste Datei-Upload über Ingest API..."
+          curl -v -f -X POST http://localhost:8000/api/v1/ingest/upload \
+            -F "file=@data/docs/test1.txt"
+          echo "✅ Upload erfolgreich!"
+
+            # -----------------------------------------------------
+      # 🔄 Ingest Markdown-Report ins Repo & Historie
+      # -----------------------------------------------------
+      - name: 🗂️ Commit Markdown Smoke Report to /docs/ci_reports/
+        if: success()
+        run: |
+          echo "📚 Speichere Smoke Test Report im Repository..."
+          mkdir -p docs/ci_reports
+          DATE=$(date +'%Y-%m-%d_%H-%M')
+          cp artifacts/smoke_results.md docs/ci_reports/report_$DATE.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/ci_reports/
+          git commit -m "🧾 Smoke Report ($DATE)"
+          git push
+
+      # -----------------------------------------------------
+      # 7️⃣ Statusreport als Markdown-Datei generieren
+      # -----------------------------------------------------
+      - name: 📝 Generate test report
+        run: |
+          echo "🧾 Erstelle Markdown-Report..."
+          mkdir -p artifacts
+          REPORT="artifacts/report.md"
+          echo "# 🧪 Luna IEMS Smoke Test Report" > $REPORT
+          echo "Run: $GITHUB_RUN_NUMBER" >> $REPORT
+          echo "Date: $(date -u)" >> $REPORT
+          echo "Commit: $GITHUB_SHA" >> $REPORT
+          echo "" >> $REPORT
+          echo "## ✅ Zusammenfassung" >> $REPORT
+          echo "- API Health: OK" >> $REPORT
+          echo "- Upload Test: OK" >> $REPORT
+          echo "" >> $REPORT
+          echo "## 🧩 Service Status" >> $REPORT
+          docker compose ps >> $REPORT
+          echo "" >> $REPORT
+          echo "## 🪵 Logs (API excerpt)" >> $REPORT
+          docker compose logs api --tail=50 >> $REPORT
+
+      # -----------------------------------------------------
+      # 8️⃣ Report als GitHub Artifact speichern
+      # -----------------------------------------------------
+      - name: 📦 Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luna-smoke-report
+          path: artifacts/report.md
+
+      # -----------------------------------------------------
+      # 9️⃣ Report dauerhaft ins Repo schreiben
+      # -----------------------------------------------------
+      - name: 🗂️ Commit CI report to /docs/ci_reports/
+        if: success()
+        run: |
+          echo "📚 Speichere Report im Repository..."
+          mkdir -p docs/ci_reports
+          DATE=$(date +'%Y-%m-%d_%H-%M')
+          cp artifacts/report.md docs/ci_reports/report_$DATE.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/ci_reports/
+          git commit -m "🧾 CI report ($DATE)"
+          git push
+
+      # -----------------------------------------------------
+      # 🔟 Logs bei Fehlern anzeigen
+      # -----------------------------------------------------
+      - name: 🔍 Print logs on failure
+        if: failure()
+        run: |
+          echo "❌ Smoke Test fehlgeschlagen – Logs folgen:"
+          docker compose logs --tail=100
+
+      # -----------------------------------------------------
+      # 11️⃣ Cleanup
+      # -----------------------------------------------------
+      - name: 🧹 Stop and clean up
+        if: always()
+        run: |
+          echo "🧹 Entferne Container und Volumes..."
+          docker compose down -v
+

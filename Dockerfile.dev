@@ -1,32 +1,24 @@
-# ------------------------------------------------------------------------------
-# 🐳 Dockerfile.dev – Entwicklungsumgebung für Luna IEMS API & Worker
-# ------------------------------------------------------------------------------
+# -------- Luna IEMS Dev Environment --------
+FROM python:3.12-slim
 
-FROM python:3.11-slim
-
-# Arbeitsverzeichnis
 WORKDIR /app
 
-# Systemabhängigkeiten installieren (für psycopg und Tika)
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    curl \
-    netcat-traditional \
-    && rm -rf /var/lib/apt/lists/*
+# System packages
+RUN apt-get update && apt-get install -y curl build-essential && rm -rf /var/lib/apt/lists/*
 
-# Requirements kopieren und installieren
-COPY ./api/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Quellcode kopieren
-COPY ./api /app
+# Copy project
+COPY . .
 
-# Port für FastAPI
+# Default environment
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Expose API port
 EXPOSE 8000
 
-# Default-Kommando (API)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
-
-
+# 🔥 Start FastAPI (dev mode with autoreload)
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

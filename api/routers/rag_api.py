@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services import rag
+from api.services import rag
 
-router = APIRouter(prefix="/api/v1/rag", tags=["RAG (Retrieval-Augmented Generation)"])
+router = APIRouter(prefix="/api/v1/rag", tags=["RAG"])
 
 class AskBody(BaseModel):
     question: str
@@ -10,11 +10,10 @@ class AskBody(BaseModel):
 
 @router.post("/ask")
 def rag_ask(body: AskBody):
-    """
-    Beantwortet eine Frage mithilfe des RAG-Moduls (Retriever + LLM).
-    """
+    """Fragt die RAG-Engine ab und liefert eine KI-generierte Antwort."""
     try:
         result = rag.ask(body.question, top_k=body.top_k or 6)
         return {"status": "ok", "data": result}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "detail": str(e)}
+

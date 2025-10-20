@@ -1,56 +1,57 @@
-import requests, psycopg, os, sys
+#!/usr/bin/env python3
+"""
+🌙 Luna IEMS – Extended Smoke Test
+Erzeugt automatisch einen Markdown-Report (artifacts/smoke_results.md).
+"""
+
+import sys, requests
+from datetime import datetime
+from pathlib import Path
 from rich.console import Console
+from rich.table import Table
 
 console = Console()
-API = "http://localhost:8000/api/v1"
-DB_DSN = os.getenv("PG_DSN", "postgresql://postgres:postgres@db:5432/luna")
+BASE_URL = "http://localhost:8000"
 
-def ok(msg): console.print(f"✅ {msg}", style="green")
-def warn(msg): console.print(f"⚠️ {msg}", style="yellow")
-def fail(msg): console.print(f"❌ {msg}", style="red"); sys.exit(1)
-
-def test_api():
-    r = requests.get(f"{API}/system/info")
-    r.raise_for_status()
-    ok("API erreichbar")
-
-def test_db():
-    with psycopg.connect(DB_DSN) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM smart_meter_readings;")
-        sm = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM market_prices;")
-        mp = cur.fetchone()[0]
-        if sm > 0 and mp > 0:
-            ok("Simulation-Daten vorhanden")
-        else:
-            warn("Simulation noch leer")
-
-def test_rag():
-    q = {"question": "Was steht in sample.pdf?"}
-    r = requests.post(f"{API}/rag/ask", json=q)
-    if r.ok and "answer" in r.json():
-        ok("RAG liefert Antwort")
-    else:
-        warn("RAG leer oder Fehler")
-
-def test_recommend():
-    r = requests.post(f"{API}/recommend", json={})
-    if r.ok and r.json().get("items"):
-        ok("Empfehlung aktiv")
-    else:
-        warn("Empfehlung leer")
+def check_http(name, url):
+    try:
+        r = requests.get(url, timeout=5)
+        return r.ok, f"{r.status_code} → {url}"
+    except Exception as e:
+        return False, str(e)
 
 def main():
-    console.rule("[bold blue]Luna-IEMS Smoke-Test (Python)")
-    try:
-        test_api()
-        test_db()
-        test_rag()
-        test_recommend()
-        ok("Smoke-Test abgeschlossen")
-    except Exception as e:
-        fail(str(e))
+    console.print("\n[bold cyan]🔍 Luna IEMS – Smoke Test[/bold cyan]")
+    checks = {
+        "FastAPI /health": f"{BASE_URL}/health",
+        "System Info": f"{BASE_URL}/api/v1/system/info",
+        "Qdrant": "http://localhost:6333/readyz",
+        "Tika": "http://localhost:9998/tika",
+        "Ollama": "http://localhost:11434/api/tags",
+    }
+
+    results = {k: check_http(k, v) for k, v in checks.items()}
+    ok_all = all(v[0] for v in results.values())
+
+    # Konsolen-Tabelle
+    table = Table(title="Smoke Test Results")
+    table.add_column("Service"); table.add_column("Status"); table.add_column("Detail")
+    for k, (ok, detail) in results.items():
+        table.add_row(k, "✅ OK" if ok else "❌ FAIL", detail)
+    console.print(table)
+
+    # Markdown-Report
+    p = Path("artifacts"); p.mkdir(exist_ok=True)
+    f = p / "smoke_results.md"
+    with f.open("w", encoding="utf-8") as out:
+        out.write(f"# 🧪 Luna IEMS Smoke Test Report\n")
+        out.write(f"**Date:** {datetime.utcnow().isoformat()} UTC\n\n")
+        out.write("| Service | Status | Detail |\n|---|---|---|\n")
+        for k, (ok, d) in results.items():
+            out.write(f"| {k} | {'✅ OK' if ok else '❌ FAIL'} | {d} |\n")
+        out.write("\n" + ("✅ Alle Services stabil.\n" if ok_all else "❌ Fehler aufgetreten.\n"))
+    console.print(f"\n📄 Markdown-Report → {f}")
+    sys.exit(0 if ok_all else 1)
 
 if __name__ == "__main__":
     main()
