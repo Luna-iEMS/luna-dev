@@ -1,4 +1,5 @@
-name: 🔄 Sync Project Plan to GitHub Board (v4)
+name: "Project Sync to GitHub Board"
+
 
 on:
   push:
