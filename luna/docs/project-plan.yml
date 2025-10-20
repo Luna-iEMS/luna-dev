@@ -1,0 +1,111 @@
+name: 🌙 Luna-IEMS Gesamtprojekt
+description: Technisch-strategischer Projektplan (MVP → v1 Release)
+version: 1.1
+
+phases:
+  - title: Phase 1 – Fundament & Infrastruktur
+    due_in_days: 7
+    deliverables:
+      - Docker-Compose-Stack (API / DB / Qdrant / Ollama / Tika / MinIO / Worker)
+      - Makefile-Targets (dev, seed, smoke)
+      - `.env.example` und Health-Scripts
+    ci:
+      - GitHub Actions für Lint + Smoke Tests
+      - Lokale Smoke-Suite (`scripts/smoke_test.py`)
+
+  - title: Phase 2 – Datenmodell & Migrationen
+    due_in_days: 14
+    deliverables:
+      - Alembic-Migrations für alle Tabellen (Users, Items, Events, Smart-Meter, Market)
+      - Seed-Daten für Simulation und Playbook-Texte
+      - Governance-Badges (`owner`, `valid_until`, `approved_by`, `status`)
+    quality:
+      - CI-Datenbank-Smoke-Tests
+      - Linting der SQL-Skripte
+
+  - title: Phase 3 – KI / RAG / Persona „Luna“
+    due_in_days: 21
+    deliverables:
+      - Embedding-, Tika- und Qdrant-Integration
+      - Prompt-Design & Persona-Tuning (leicht ironischer Ton)
+      - `/rag/ask` Endpoint mit Zitaten & Context-Limits
+    training:
+      - Dokumenten-Uploads + Feedback-Logging
+      - Offline Retrieval-Eval (Hit@K, MRR)
+
+  - title: Phase 4 – Ingest Pipeline & Worker
+    due_in_days: 28
+    deliverables:
+      - Datei- und URL-Upload
+      - Chunking + Dedupe (sha256)
+      - Reindex-/ Retrain-Jobs
+    quality:
+      - Unit-Tests für Ingest und Vector-Store
+
+  - title: Phase 5 – Simulation & Adapter
+    due_in_days: 35
+    deliverables:
+      - Smart-Meter- & Marktpreis-Simulatoren
+      - API `/sim/run` (admin-only)
+      - Platzhalter für spätere Echt-Adapter
+    data:
+      - Timescale-Integration (Verbrauch, Preis, Qualität)
+      - Beispiel-CSV für Tests
+
+  - title: Phase 6 – Empfehlung & Feedback-Loop
+    due_in_days: 42
+    deliverables:
+      - `/recommend` API mit Banditen-Logik (LinUCB / Thompson)
+      - Event-Tracking (view | click | useful)
+      - Nacht-Reindex + Learning-Dashboard (METRICS.md)
+    metrics:
+      - CTR, Useful-Rate, Decision-Latency, Fragilitätsscore
+      - Admin-Charts zur antifragilen Lernkurve
+
+  - title: Phase 7 – Frontends (Customer + Admin)
+    due_in_days: 49
+    deliverables:
+      - Customer-Dashboard (Q&A, Charts, Empfehlungen, Playground)
+      - Admin-Dashboard (Upload, Health, Monitoring)
+      - Rollenmodell (CFO, Technik, ESG, Controlling)
+      - Auth (JWT, API-Key)
+    ui:
+      - Tailwind + shadcn/ui
+      - Reports (PDF + CSV)
+
+  - title: Phase 8 – Sicherheit & Compliance
+    due_in_days: 56
+    deliverables:
+      - Upload-Validation (Typ, Größe, AV)
+      - Rate-Limits für `/rag/ask`
+      - DSGVO / EU AI Act Dokumentation (docs/SECURITY_PRIVACY.md)
+    tests:
+      - CI E2E und Load Tests über Smoke-Pipeline
+
+  - title: Phase 9 – Developer Experience & Release
+    due_in_days: 63
+    deliverables:
+      - Makefile Erweiterungen (dev/test/smoke)
+      - DX-Dokumentation im README
+      - Release-Drafter Workflow und Tags
+    outcomes:
+      - 🧾 Automatisierte CI-Reports → `docs/ci_reports/`
+      - 📦 v1 Release mit Smoke-Badge & Metrics
+
+roles:
+  - admin
+  - cfo
+  - technician
+  - esg
+  - controller
+
+ci_cd:
+  workflows:
+    - smoke-test.yml
+    - release-drafter.yml
+  reports:
+    - docs/ci_reports/
+  badges:
+    - Smoke Tests
+    - Releases
+    - Code Style
