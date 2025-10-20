@@ -1,5 +1,4 @@
-# .github/workflows/project-sync.yml
-name: 🔄 Sync Project Plan to GitHub Board
+name: 🔄 Sync Project Plan to GitHub Board (v3)
 
 on:
   push:
@@ -9,25 +8,76 @@ on:
   schedule:
     - cron: '0 6 * * 1'   # jeden Montag 06:00 Uhr
 
+permissions:
+  contents: read
+  issues: read
+  organization-projects: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repo
+      # -----------------------------------------------------
+      # 1️⃣ Repository auschecken
+      # -----------------------------------------------------
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Parse YAML and update GitHub Project
-        uses: tibdex/github-app-token@v1
-        id: generate_token
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.PRIVATE_KEY }}
+      # -----------------------------------------------------
+      # 2️⃣ GitHub CLI installieren (für Projects API)
+      # -----------------------------------------------------
+      - name: 🧰 Setup GitHub CLI
+        uses: cli/cli-action@v2
 
-      - name: Sync Project Plan
-        uses: peter-evans/create-or-update-project@v3
-        with:
-          token: ${{ steps.generate_token.outputs.token }}
-          project-name: "🌙 Luna-IEMS Development Board"
-          body: |
-            🚀 Automatischer Sync aus [docs/project-plan.yml](docs/project-plan.yml)
-            _Letztes Update: ${{ github.event.head_commit.timestamp }}_
+      # -----------------------------------------------------
+      # 3️⃣ GitHub Project Board auslesen
+      # -----------------------------------------------------
+      - name: 🔍 Locate Project Board via GraphQL API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔎 Suche nach Projektboard '🌙 Luna-IEMS Development Board'..."
+          gh api graphql -f query='
+            query {
+              organization(login: "Luna-IEMS") {
+                projectsV2(first: 10) {
+                  nodes { id title url }
+                }
+              }
+            }' > projects.json
+
+          cat projects.json | jq -r '.data.organization.projectsV2.nodes[] | "\(.title) → \(.id) (\(.url))"'
+
+          export PROJECT_ID=$(cat projects.json | jq -r '.data.organization.projectsV2.nodes[] | select(.title=="🌙 Luna-IEMS Development Board") | .id')
+          if [ -z "$PROJECT_ID" ]; then
+            echo "❌ Kein passendes Board gefunden. Bitte sicherstellen, dass das Project in der Orga 'Luna-IEMS' existiert."
+            exit 1
+          fi
+          echo "✅ Board gefunden mit ID: $PROJECT_ID"
+
+      # -----------------------------------------------------
+      # 4️⃣ YAML-Datei prüfen und anzeigen
+      # -----------------------------------------------------
+      - name: 📚 Inspect project-plan.yml
+        run: |
+          echo "🧾 Prüfe docs/project-plan.yml..."
+          head -20 docs/project-plan.yml || echo "⚠️ Datei nicht gefunden!"
+          echo "✅ YAML erfolgreich geladen."
+
+      # -----------------------------------------------------
+      # 5️⃣ API-Aufruf (Sync-Dummy, zukünftige Issue-Syncs möglich)
+      # -----------------------------------------------------
+      - name: 🔄 Sync summary to Project Board description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PROJECT_ID=$(cat projects.json | jq -r '.data.organization.projectsV2.nodes[] | select(.title=="🌙 Luna-IEMS Development Board") | .id')
+          echo "🪄 Aktualisiere Beschreibung des Boards..."
+          gh api graphql -f query='
+            mutation($project:ID!, $desc:String!) {
+              updateProjectV2(input: { projectId: $project, shortDescription: $desc }) {
+                projectV2 { title shortDescription }
+              }
+            }' -f project="$PROJECT_ID" -f desc="🚀 Automatischer Sync: $(date -u)"
+          echo "✅ Sync abgeschlossen."
