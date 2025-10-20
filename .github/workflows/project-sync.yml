@@ -1,4 +1,4 @@
-name: 🔄 Sync Project Plan to GitHub Board (v3)
+name: 🔄 Sync Project Plan to GitHub Board (v4)
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 permissions:
   contents: read
-  issues: read
+  issues: write
   organization-projects: write
 
 jobs:
@@ -31,7 +31,20 @@ jobs:
         uses: cli/cli-action@v2
 
       # -----------------------------------------------------
-      # 3️⃣ GitHub Project Board auslesen
+      # 3️⃣ YAML prüfen
+      # -----------------------------------------------------
+      - name: 📚 Inspect project-plan.yml
+        run: |
+          echo "🧾 Prüfe docs/project-plan.yml..."
+          if [ ! -f docs/project-plan.yml ]; then
+            echo "❌ Datei docs/project-plan.yml nicht gefunden!"
+            exit 1
+          fi
+          head -20 docs/project-plan.yml
+          echo "✅ YAML erfolgreich geladen."
+
+      # -----------------------------------------------------
+      # 4️⃣ Project Board suchen
       # -----------------------------------------------------
       - name: 🔍 Locate Project Board via GraphQL API
         env:
@@ -57,23 +70,60 @@ jobs:
           echo "✅ Board gefunden mit ID: $PROJECT_ID"
 
       # -----------------------------------------------------
-      # 4️⃣ YAML-Datei prüfen und anzeigen
+      # 5️⃣ YAML lesen und Issues erstellen
       # -----------------------------------------------------
-      - name: 📚 Inspect project-plan.yml
+      - name: 🧩 Parse YAML and create Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: Luna-IEMS
+          REPO: luna-dev
         run: |
-          echo "🧾 Prüfe docs/project-plan.yml..."
-          head -20 docs/project-plan.yml || echo "⚠️ Datei nicht gefunden!"
-          echo "✅ YAML erfolgreich geladen."
+          echo "📚 Lade und verarbeite docs/project-plan.yml..."
+          pip install pyyaml requests > /dev/null
+
+          python3 <<'PYCODE'
+          import os, yaml, subprocess
+
+          owner = os.getenv("OWNER")
+          repo = os.getenv("REPO")
+
+          with open("docs/project-plan.yml", "r") as f:
+              plan = yaml.safe_load(f)
+
+          print(f"🔍 {len(plan.get('phases', []))} Phasen gefunden.")
+          for phase in plan.get("phases", []):
+              phase_name = phase.get("title")
+              for deliverable in phase.get("deliverables", []):
+                  title = f"{phase_name}: {deliverable}"
+                  print(f"📌 Erstelle/prüfe Issue: {title}")
+                  cmd = [
+                      "gh", "issue", "list", "--repo", f"{owner}/{repo}",
+                      "--search", f'"{title}"', "--state", "all", "--json", "title"
+                  ]
+                  existing = subprocess.check_output(" ".join(cmd), shell=True).decode("utf-8").strip()
+                  if title in existing:
+                      print(f"✅ Bereits vorhanden: {title}")
+                      continue
+                  subprocess.run([
+                      "gh", "issue", "create",
+                      "--repo", f"{owner}/{repo}",
+                      "--title", title,
+                      "--body", f"Automatisch erstellt aus project-plan.yml\n\nPhase: **{phase_name}**\nDeliverable: `{deliverable}`",
+                      "--label", "auto-sync"
+                  ])
+                  print(f"✨ Issue erstellt: {title}")
+          PYCODE
+          echo "✅ Alle Issues wurden verarbeitet."
 
       # -----------------------------------------------------
-      # 5️⃣ API-Aufruf (Sync-Dummy, zukünftige Issue-Syncs möglich)
+      # 6️⃣ Projektbeschreibung aktualisieren
       # -----------------------------------------------------
-      - name: 🔄 Sync summary to Project Board description
+      - name: 🔄 Update Board Description
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PROJECT_ID=$(cat projects.json | jq -r '.data.organization.projectsV2.nodes[] | select(.title=="🌙 Luna-IEMS Development Board") | .id')
-          echo "🪄 Aktualisiere Beschreibung des Boards..."
+          echo "🪄 Aktualisiere Projektbeschreibung..."
           gh api graphql -f query='
             mutation($project:ID!, $desc:String!) {
               updateProjectV2(input: { projectId: $project, shortDescription: $desc }) {
