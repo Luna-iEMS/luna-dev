@@ -1,0 +1,38 @@
+# .github/release-drafter.yml
+name-template: '🚀 Luna IEMS v$NEXT_PATCH_VERSION'
+tag-template: 'v$NEXT_PATCH_VERSION'
+change-template: '- $TITLE (#$NUMBER)'
+version-template: $MAJOR.$MINOR.$PATCH
+
+categories:
+  - title: "✨ Features"
+    labels:
+      - feature
+      - enhancement
+  - title: "🐛 Fixes"
+    labels:
+      - fix
+      - bug
+  - title: "🧩 Refactor / Internal"
+    labels:
+      - refactor
+      - chore
+  - title: "🧪 Tests & CI"
+    labels:
+      - test
+      - ci
+  - title: "📚 Documentation"
+    labels:
+      - docs
+
+change-title-escapes: false
+template: |
+  ## 🌙 Luna IEMS Release Notes
+
+  $CHANGES
+
+  ---
+  🧾 **Generated:** $DATE  
+  🧩 **Commit:** $COMMIT  
+  💡 **Maintainer:** Monika Pichlhöfer
+
