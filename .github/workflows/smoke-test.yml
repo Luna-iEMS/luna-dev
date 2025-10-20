@@ -1,4 +1,4 @@
-name: 🔥 Luna IEMS Smoke Test
+name: 🔥 Luna IEMS Smoke Test v2
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
   smoke-test:
     name: 🧪 End-to-End Smoke Test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       # -----------------------------------------------------
@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       # -----------------------------------------------------
-      # 2️⃣ Prüfen, ob Docker verfügbar ist
+      # 2️⃣ Docker-Verfügbarkeit prüfen
       # -----------------------------------------------------
       - name: 🐋 Check Docker availability
         run: |
@@ -30,90 +30,87 @@ jobs:
           docker info
 
       # -----------------------------------------------------
-      # 3️⃣ Docker Compose Umgebung starten
+      # 3️⃣ Docker Compose Stack starten
       # -----------------------------------------------------
-      - name: 🐳 Start Luna IEMS stack (simplified mode)
+      - name: 🐳 Start Luna IEMS stack
         run: |
           echo "🚀 Starte Luna IEMS Stack via docker-compose..."
           docker compose -f docker-compose.yml up -d
-          echo "⏳ Warte auf Services (API, Qdrant, Ollama, Tika, DB)..."
-          sleep 75
           docker compose ps
 
       # -----------------------------------------------------
-      # 4️⃣ Healthcheck mit eigenem Script
+      # 4️⃣ Warten, bis alle Services bereit sind
       # -----------------------------------------------------
-      - name: 🩺 Run healthcheck script
+      - name: 🕒 Wait for core services
         run: |
-          echo "🔍 Starte Healthcheck..."
-          pip install requests
-          python scripts/healthcheck.py || (echo '❌ Healthcheck fehlgeschlagen!' && exit 1)
+          echo "⏳ Warte auf API, Qdrant, Tika und Ollama..."
+          for i in {1..30}; do
+            API=$(curl -fs http://localhost:8000/health || true)
+            QDRANT=$(curl -fs http://localhost:6333/readyz || true)
+            TIKA=$(curl -fs http://localhost:9998/tika || true)
+            OLLAMA=$(curl -fs http://localhost:11434/api/tags || true)
+            if [ -n "$API" ] && [ -n "$QDRANT" ] && [ -n "$TIKA" ] && [ -n "$OLLAMA" ]; then
+              echo "✅ Alle Services sind bereit!"
+              break
+            fi
+            echo "⌛ Versuch $i/30 – warte 5 Sekunden..."
+            sleep 5
+          done
 
       # -----------------------------------------------------
-      # 5️⃣ API /health Endpoint prüfen
+      # 5️⃣ /health Endpoint prüfen (API)
       # -----------------------------------------------------
       - name: 🌐 Check API /health endpoint
         run: |
           echo "🌙 Prüfe FastAPI /health endpoint..."
           curl -v -f http://localhost:8000/health
+          echo "✅ API /health erfolgreich!"
 
       # -----------------------------------------------------
-      # 6️⃣ Upload-/Ingest-Test
+      # 6️⃣ Upload-/Ingest-Test (End-to-End)
       # -----------------------------------------------------
       - name: 📤 Test file upload ingest endpoint
         run: |
           echo "📤 Teste Datei-Upload über Ingest API..."
           curl -v -f -X POST http://localhost:8000/api/v1/ingest/upload \
-            -F "file=@data/docs/test1.txt"
+            -F "file=@data/docs/test2.txt"
           echo "✅ Upload erfolgreich!"
 
-            # -----------------------------------------------------
-      # 🔄 Ingest Markdown-Report ins Repo & Historie
       # -----------------------------------------------------
-      - name: 🗂️ Commit Markdown Smoke Report to /docs/ci_reports/
-        if: success()
-        run: |
-          echo "📚 Speichere Smoke Test Report im Repository..."
-          mkdir -p docs/ci_reports
-          DATE=$(date +'%Y-%m-%d_%H-%M')
-          cp artifacts/smoke_results.md docs/ci_reports/report_$DATE.md
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/ci_reports/
-          git commit -m "🧾 Smoke Report ($DATE)"
-          git push
-
-      # -----------------------------------------------------
-      # 7️⃣ Statusreport als Markdown-Datei generieren
+      # 7️⃣ Markdown-Testreport generieren
       # -----------------------------------------------------
       - name: 📝 Generate test report
         run: |
-          echo "🧾 Erstelle Markdown-Report..."
+          echo "🧾 Erstelle Smoke Test Report..."
           mkdir -p artifacts
-          REPORT="artifacts/report.md"
+          REPORT="artifacts/smoke_report.md"
           echo "# 🧪 Luna IEMS Smoke Test Report" > $REPORT
-          echo "Run: $GITHUB_RUN_NUMBER" >> $REPORT
-          echo "Date: $(date -u)" >> $REPORT
-          echo "Commit: $GITHUB_SHA" >> $REPORT
+          echo "**Date:** $(date -u)" >> $REPORT
+          echo "**Commit:** $GITHUB_SHA" >> $REPORT
           echo "" >> $REPORT
-          echo "## ✅ Zusammenfassung" >> $REPORT
-          echo "- API Health: OK" >> $REPORT
-          echo "- Upload Test: OK" >> $REPORT
+          echo "## ✅ Ergebnisse" >> $REPORT
+          echo "- API /health erreichbar" >> $REPORT
+          echo "- Upload/Ingest erfolgreich" >> $REPORT
           echo "" >> $REPORT
           echo "## 🧩 Service Status" >> $REPORT
           docker compose ps >> $REPORT
           echo "" >> $REPORT
           echo "## 🪵 Logs (API excerpt)" >> $REPORT
           docker compose logs api --tail=50 >> $REPORT
+          echo "" >> $REPORT
+          echo "## 🪵 Logs (Worker excerpt)" >> $REPORT
+          docker compose logs worker --tail=50 >> $REPORT || true
+          echo "" >> $REPORT
+          echo "## 🚀 Finished successfully" >> $REPORT
 
       # -----------------------------------------------------
-      # 8️⃣ Report als GitHub Artifact speichern
+      # 8️⃣ Artifact hochladen
       # -----------------------------------------------------
       - name: 📦 Upload report as artifact
         uses: actions/upload-artifact@v4
         with:
           name: luna-smoke-report
-          path: artifacts/report.md
+          path: artifacts/smoke_report.md
 
       # -----------------------------------------------------
       # 9️⃣ Report dauerhaft ins Repo schreiben
@@ -124,15 +121,15 @@ jobs:
           echo "📚 Speichere Report im Repository..."
           mkdir -p docs/ci_reports
           DATE=$(date +'%Y-%m-%d_%H-%M')
-          cp artifacts/report.md docs/ci_reports/report_$DATE.md
+          cp artifacts/smoke_report.md docs/ci_reports/report_$DATE.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/ci_reports/
-          git commit -m "🧾 CI report ($DATE)"
+          git commit -m "🧾 CI Smoke Report ($DATE)"
           git push
 
       # -----------------------------------------------------
-      # 🔟 Logs bei Fehlern anzeigen
+      # 🔟 Logs bei Fehlern
       # -----------------------------------------------------
       - name: 🔍 Print logs on failure
         if: failure()
@@ -148,4 +145,3 @@ jobs:
         run: |
           echo "🧹 Entferne Container und Volumes..."
           docker compose down -v
-
