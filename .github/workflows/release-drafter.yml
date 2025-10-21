@@ -2,25 +2,39 @@
 name: 📦 Release Drafter
 
 on:
+  # Automatisch bei Push auf main
   push:
     branches: [ main ]
+  # Automatisch, wenn ein Pull Request geschlossen (gemergt) wird
   pull_request:
     types: [closed]
+  # Manuell über GitHub Actions startbar
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: read
+  contents: write          # für das Erstellen/Aktualisieren von Releases
+  pull-requests: read      # um PR-Titel und Labels zu lesen
 
 jobs:
   update_release_draft:
+    name: 🧭 Update Release Draft
     runs-on: ubuntu-latest
+
     steps:
-      - name: 📥 Checkout repo
+      # -----------------------------------------------------
+      # 1️⃣ Repository auschecken
+      # -----------------------------------------------------
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
+      # -----------------------------------------------------
+      # 2️⃣ Release Draft aktualisieren
+      # -----------------------------------------------------
       - name: 🧭 Update Release Draft
         uses: release-drafter/release-drafter@v6
         with:
-          config-name: .github/release-drafter.yml
+          # Wichtig: Pfad relativ zu .github/
+          config-name: release-drafter.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
