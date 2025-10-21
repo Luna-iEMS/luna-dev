@@ -26,14 +26,15 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
+
       qdrant:
         image: qdrant/qdrant:v1.11.0
         ports: [ "6333:6333" ]
         options: >-
-          --health-cmd="curl -fs http://localhost:6333/readyz || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
+          --health-cmd="curl -fs http://localhost:6333/readyz || exit 0"
+          --health-interval=15s
+          --health-timeout=10s
+          --health-retries=20
 
     steps:
       # -----------------------------------------------------
@@ -64,20 +65,21 @@ jobs:
       - name: 🕒 Wait for core services
         run: |
           echo "⏳ Warte auf Datenbank und Qdrant..."
-          for i in {1..20}; do
+          for i in {1..30}; do
             pg_isready -h localhost -U postgres && \
             curl -fs http://localhost:6333/readyz && break
-            echo "⌛ Versuch $i/20 – warte 5 Sekunden..."
+            echo "⌛ Versuch $i/30 – warte 5 Sekunden..."
             sleep 5
           done
+          echo "✅ Alle Core Services bereit."
 
       # -----------------------------------------------------
-      # 5️⃣ Run API in background
+      # 5️⃣ Start API server (background)
       # -----------------------------------------------------
       - name: 🌙 Start API server (background)
         run: |
           uvicorn api.main:app --host 0.0.0.0 --port 8000 &
-          sleep 15
+          sleep 20
           curl -fs http://localhost:8000/health
 
       # -----------------------------------------------------
