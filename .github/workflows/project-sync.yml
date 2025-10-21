@@ -1,13 +1,17 @@
-name: "Project Sync to GitHub Board"
-
+name: 🔄 Luna IEMS Project Sync
 
 on:
+  # Läuft automatisch, wenn sich der Projektplan ändert
   push:
     paths:
       - 'docs/project-plan.yml'
-  workflow_dispatch:
+
+  # Läuft automatisch jeden Montag um 06:00 UTC
   schedule:
-    - cron: '0 6 * * 1'   # jeden Montag 06:00 Uhr
+    - cron: '0 6 * * 1'
+
+  # Manuell startbar über das GitHub Actions Menü
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,8 +19,10 @@ permissions:
   organization-projects: write
 
 jobs:
-  sync:
+  sync-project:
+    name: 🧩 Sync Project Plan to GitHub Board
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       # -----------------------------------------------------
@@ -26,26 +32,19 @@ jobs:
         uses: actions/checkout@v4
 
       # -----------------------------------------------------
-      # 2️⃣ GitHub CLI installieren (für Projects API)
+      # 2️⃣ GitHub CLI einrichten (für Projects API)
       # -----------------------------------------------------
       - name: 🧰 Setup GitHub CLI
         uses: cli/cli-action@v2
 
       # -----------------------------------------------------
-      # 3️⃣ YAML prüfen
+      # 3️⃣ Abhängigkeiten installieren
       # -----------------------------------------------------
-      - name: 📚 Inspect project-plan.yml
-        run: |
-          echo "🧾 Prüfe docs/project-plan.yml..."
-          if [ ! -f docs/project-plan.yml ]; then
-            echo "❌ Datei docs/project-plan.yml nicht gefunden!"
-            exit 1
-          fi
-          head -20 docs/project-plan.yml
-          echo "✅ YAML erfolgreich geladen."
+      - name: 🧩 Install Python packages
+        run: pip install pyyaml requests > /dev/null
 
       # -----------------------------------------------------
-      # 4️⃣ Project Board suchen
+      # 4️⃣ Projektboard-ID abrufen
       # -----------------------------------------------------
       - name: 🔍 Locate Project Board via GraphQL API
         env:
@@ -55,7 +54,7 @@ jobs:
           gh api graphql -f query='
             query {
               organization(login: "Luna-IEMS") {
-                projectsV2(first: 10) {
+                projectsV2(first: 20) {
                   nodes { id title url }
                 }
               }
@@ -71,17 +70,15 @@ jobs:
           echo "✅ Board gefunden mit ID: $PROJECT_ID"
 
       # -----------------------------------------------------
-      # 5️⃣ YAML lesen und Issues erstellen
+      # 5️⃣ YAML lesen und Issues synchronisieren
       # -----------------------------------------------------
-      - name: 🧩 Parse YAML and create Issues
+      - name: 🧾 Parse project-plan.yml and sync issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: Luna-IEMS
           REPO: luna-dev
         run: |
           echo "📚 Lade und verarbeite docs/project-plan.yml..."
-          pip install pyyaml requests > /dev/null
-
           python3 <<'PYCODE'
           import os, yaml, subprocess
 
@@ -91,20 +88,25 @@ jobs:
           with open("docs/project-plan.yml", "r") as f:
               plan = yaml.safe_load(f)
 
-          print(f"🔍 {len(plan.get('phases', []))} Phasen gefunden.")
+          print(f"🔍 {len(plan.get('phases', []))} Phasen gefunden.\n")
+
           for phase in plan.get("phases", []):
               phase_name = phase.get("title")
               for deliverable in phase.get("deliverables", []):
                   title = f"{phase_name}: {deliverable}"
-                  print(f"📌 Erstelle/prüfe Issue: {title}")
+                  print(f"📌 Prüfe Issue: {title}")
+
+                  # Bestehende Issues abrufen
                   cmd = [
                       "gh", "issue", "list", "--repo", f"{owner}/{repo}",
-                      "--search", f'"{title}"', "--state", "all", "--json", "title"
+                      "--search", title, "--state", "all", "--json", "title"
                   ]
                   existing = subprocess.check_output(" ".join(cmd), shell=True).decode("utf-8").strip()
                   if title in existing:
                       print(f"✅ Bereits vorhanden: {title}")
                       continue
+
+                  # Neues Issue anlegen
                   subprocess.run([
                       "gh", "issue", "create",
                       "--repo", f"{owner}/{repo}",
@@ -112,23 +114,30 @@ jobs:
                       "--body", f"Automatisch erstellt aus project-plan.yml\n\nPhase: **{phase_name}**\nDeliverable: `{deliverable}`",
                       "--label", "auto-sync"
                   ])
-                  print(f"✨ Issue erstellt: {title}")
+                  print(f"✨ Neu erstellt: {title}\n")
+
+          print("\n🎯 Alle Issues wurden erfolgreich synchronisiert.")
           PYCODE
-          echo "✅ Alle Issues wurden verarbeitet."
 
       # -----------------------------------------------------
       # 6️⃣ Projektbeschreibung aktualisieren
       # -----------------------------------------------------
-      - name: 🔄 Update Board Description
+      - name: 🪄 Update Project Board Description
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PROJECT_ID=$(cat projects.json | jq -r '.data.organization.projectsV2.nodes[] | select(.title=="🌙 Luna-IEMS Development Board") | .id')
-          echo "🪄 Aktualisiere Projektbeschreibung..."
+          echo "🪶 Aktualisiere Projektbeschreibung..."
           gh api graphql -f query='
             mutation($project:ID!, $desc:String!) {
               updateProjectV2(input: { projectId: $project, shortDescription: $desc }) {
                 projectV2 { title shortDescription }
               }
             }' -f project="$PROJECT_ID" -f desc="🚀 Automatischer Sync: $(date -u)"
-          echo "✅ Sync abgeschlossen."
+          echo "✅ Projektbeschreibung aktualisiert."
+
+      # -----------------------------------------------------
+      # 7️⃣ Erfolgsmeldung
+      # -----------------------------------------------------
+      - name: ✅ Finished
+        run: echo "🎉 Project Sync erfolgreich abgeschlossen!"
