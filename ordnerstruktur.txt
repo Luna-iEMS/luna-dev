@@ -60,7 +60,8 @@
 │   │   ├── report_2025-10-21_05-32.md
 │   │   ├── report_2025-10-21_05-43.md
 │   │   ├── report_2025-10-21_06-02.md
-│   │   └── report_2025-10-21_06-15.md
+│   │   ├── report_2025-10-21_06-15.md
+│   │   └── report_2025-10-21_06-22.md
 │   ├── GOVERNANCE_BADGES.md
 │   ├── METRICS.md
 │   ├── PLAYGROUND.md
@@ -69,6 +70,7 @@
 │   └── SIMULATOR.md
 ├── init_db.sql
 ├── logs
+│   └── update.log
 ├── Makefile
 ├── migrations
 │   └── init_db.sql
@@ -78,7 +80,23 @@
 │   ├── id_ed25519
 │   ├── id_ed25519.pub
 │   └── models
-│       └── blobs
+│       ├── blobs
+│       │   ├── sha256-0ba8f0e314b4264dfd19df045cde9d4c394a52474bf92ed6a3de22a4ca31a177
+│       │   ├── sha256-31df23ea7daa448f9ccdbbcecce6c14689c8552222b80defd3830707c0139d4f
+│       │   ├── sha256-455f34728c9b5dd3376378bfb809ee166c145b0b4c1f1a6feca069055066ef9a
+│       │   ├── sha256-56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb
+│       │   ├── sha256-667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29
+│       │   ├── sha256-948af2743fc78a328dcb3b0f5a31b3d75f415840fdb699e8b1235978392ecf85
+│       │   ├── sha256-970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6
+│       │   ├── sha256-c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
+│       │   └── sha256-ce4a164fc04605703b485251fe9f1a181688ba0eb6badb80cc6335c0de17ca0d
+│       └── manifests
+│           └── registry.ollama.ai
+│               └── library
+│                   ├── llama3.1
+│                   │   └── 8b
+│                   └── nomic-embed-text
+│                       └── latest
 ├── ordnerstruktur.txt
 ├── project_structure.txt
 ├── prompts
@@ -90,11 +108,13 @@
 │   ├── healthcheck.py
 │   ├── setup_models.py
 │   ├── smoke_test.py
+│   ├── start_ollama.sh
 │   ├── startup.py
 │   ├── test_local_stack.py
-│   └── train_pipeline.py
+│   ├── train_pipeline.py
+│   └── update_all.sh
 └── tests
     └── integration
         └── test_api_health.py
 
-25 directories, 73 files
+30 directories, 88 files

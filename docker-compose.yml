@@ -17,27 +17,29 @@ services:
       - ./ollama-data:/root/.ollama
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       qdrant:
         condition: service_healthy
       tika:
         condition: service_healthy
       ollama:
-        condition: service_started
+        condition: service_healthy
+    user: "${UID:-1000}:${GID:-1000}"
     command: >
       bash -c "
         echo '🚀 Initialisiere Luna IEMS ...';
         set -e;
+        bash /app/scripts/start_migrations.sh;
         python -u scripts/startup.py || echo '⚠️ Startup-Skript beendet (nicht kritisch)';
         echo '✅ Starte FastAPI-Service ...';
         exec python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level info --reload
       "
     healthcheck:
       test: ["CMD", "curl", "-fs", "http://localhost:8000/health"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 25s
     networks:
       - luna-net
 
@@ -83,17 +85,16 @@ services:
       - qdrant_data:/qdrant/storage
       - ./models:/models:ro
     networks:
-      - luna-net  
+      - luna-net
     healthcheck:
-     test: ["CMD-SHELL", "curl -fs http://localhost:6333/dashboard || exit 0"]
-     interval: 30s
-     timeout: 5s
-     retries: 5
-     start_period: 120s
-     
+      test: ["CMD-SHELL", "curl -fs http://localhost:6333/dashboard || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
 
   # =====================================================
-  # 🧠 Ollama – LLM Runtime mit lokalem Cache
+  # 🧠 Ollama – LLM Runtime
   # =====================================================
   ollama:
     image: ollama/ollama:latest
@@ -109,15 +110,16 @@ services:
       - ./scripts/start_ollama.sh:/start_ollama.sh:ro
     entrypoint: ["/bin/sh", "/start_ollama.sh"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "curl -fsS http://localhost:11434/api/tags >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 90s
     networks:
       - luna-net
 
   # =====================================================
-  # 📑 Apache Tika – Dokumentenparser
+  # 📑 Apache Tika
   # =====================================================
   tika:
     image: logicalspark/docker-tikaserver:latest
@@ -133,7 +135,7 @@ services:
       - luna-net
 
   # =====================================================
-  # 🧩 Worker – Hintergrundprozesse & Training
+  # ⚙️ Worker – Hintergrundprozesse
   # =====================================================
   worker:
     build:
@@ -159,13 +161,13 @@ services:
       - luna-net
 
   # =====================================================
-  # 🧩 Weekly Updater – automatischer Wartungsjob
+  # 🔄 Weekly Updater – Wartungsjob
   # =====================================================
   updater:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: ["sh", "-c", "bash /app/scripts/update_all.sh"]
+    command: ["bash", "/app/scripts/update_all.sh"]
     env_file: [.env]
     volumes:
       - .:/app
