@@ -1,29 +1,20 @@
-name-template: '🚀 Luna IEMS v$NEXT_PATCH_VERSION'
-tag-template: 'v$NEXT_PATCH_VERSION'
-change-template: '- $TITLE (#$NUMBER)'
-version-template: $MAJOR.$MINOR.$PATCH
+name-template: "🚀 Luna IEMS v$NEXT_PATCH_VERSION"
+tag-template: "v$NEXT_PATCH_VERSION"
+version-template: "$MAJOR.$MINOR.$PATCH"
 
 categories:
   - title: "✨ Features"
-    labels:
-      - feature
-      - enhancement
+    labels: [feature, enhancement]
   - title: "🐛 Fixes"
-    labels:
-      - fix
-      - bug
+    labels: [fix, bug]
   - title: "🧩 Refactor / Internal"
-    labels:
-      - refactor
-      - chore
+    labels: [refactor, chore]
   - title: "🧪 Tests & CI"
-    labels:
-      - test
-      - ci
+    labels: [test, ci]
   - title: "📚 Documentation"
-    labels:
-      - docs
+    labels: [docs]
 
+change-template: "- $TITLE (#$NUMBER)"
 change-title-escapes: "false"
 
 template: |
@@ -34,6 +25,5 @@ template: |
   ---
   🧾 **Generated:** $DATE  
   🧩 **Commit:** $COMMIT  
-  💡 **Maintainer:** Monika Pichlhöfer
-
-
+  💡 **Maintainer:** Monika Pichlhöfer  
+  🔗 [Repository](https://github.com/Luna-iEMS/luna-dev) • [Releases](https://github.com/Luna-iEMS/luna-dev/releases)

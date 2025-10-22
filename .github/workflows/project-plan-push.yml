@@ -1,0 +1,37 @@
+# .github/workflows/project-plan-push.yml
+name: 🗂️ Sync Project Plan to GitHub Projects
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "project.yml"
+      - "project-plan.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  projects: write
+
+jobs:
+  sync_project:
+    name: 🔄 Sync Luna Project Plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🧰 Setup GitHub CLI
+        uses: cli/cli-action@v2
+        with:
+          version: latest
+
+      - name: 🔄 Push Project Data to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📡 Syncing Luna Project Plan to GitHub..."
+          gh project create "Luna IEMS Development Plan" --format yaml --owner Luna-iEMS --body-file project.yml || true
+          echo "✅ Project Plan sync complete."
