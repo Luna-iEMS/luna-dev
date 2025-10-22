@@ -13,7 +13,7 @@ def rag_ask(body: AskBody):
     """Fragt die RAG-Engine ab und liefert eine KI-generierte Antwort."""
     try:
         result = rag.ask(body.question, top_k=body.top_k or 6)
-        return {"status": "ok", "data": result}
+        return {"status": "ok", "data": result or {}}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
 

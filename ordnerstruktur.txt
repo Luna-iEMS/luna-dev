@@ -1,0 +1,100 @@
+/home/mp/iems-luna
+├── api
+│   ├── main.py
+│   ├── __pycache__
+│   │   └── main.cpython-311.opt-1.pyc
+│   ├── routers
+│   │   ├── admin.py
+│   │   ├── data_market.py
+│   │   ├── data_smartmeter.py
+│   │   ├── ingest.py
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── admin.cpython-311.opt-1.pyc
+│   │   │   ├── data_market.cpython-311.opt-1.pyc
+│   │   │   ├── data_smartmeter.cpython-311.opt-1.pyc
+│   │   │   ├── ingest.cpython-311.opt-1.pyc
+│   │   │   ├── __init__.cpython-311.opt-1.pyc
+│   │   │   ├── rag_api.cpython-311.opt-1.pyc
+│   │   │   ├── recommend.cpython-311.opt-1.pyc
+│   │   │   └── system.cpython-311.opt-1.pyc
+│   │   ├── qdrant.py
+│   │   ├── rag_api.py
+│   │   ├── recommend.py
+│   │   └── system.py
+│   └── services
+│       ├── db.py
+│       ├── embed.py
+│       ├── __pycache__
+│       │   ├── embed.cpython-311.opt-1.pyc
+│       │   ├── qdrant.cpython-311.opt-1.pyc
+│       │   ├── rag.cpython-311.opt-1.pyc
+│       │   └── tika.cpython-311.opt-1.pyc
+│       ├── qdrant.py
+│       ├── rag.py
+│       └── tika.py
+├── artifacts
+│   └── smoke_results.md
+├── data
+│   ├── docs
+│   │   └── test2.txt
+│   ├── git
+│   │   ├── GOVERNANCE_BADGES.md
+│   │   ├── METRICS.md
+│   │   ├── PLAYGROUND.md
+│   │   ├── ROLES_ACCESS.md
+│   │   └── SIMULATOR.md
+│   └── incoming
+│       ├── luna_brain_playbook.md
+│       └── test2.txt
+├── docker-compose.yml
+├── Dockerfile.dev
+├── docs
+│   ├── ci_reports
+│   │   ├── report_2025-10-20_16-43.md
+│   │   ├── report_2025-10-20_16-55.md
+│   │   ├── report_2025-10-20_17-14.md
+│   │   ├── report_2025-10-20_17-18.md
+│   │   ├── report_2025-10-21_05-03.md
+│   │   ├── report_2025-10-21_05-20.md
+│   │   ├── report_2025-10-21_05-32.md
+│   │   ├── report_2025-10-21_05-43.md
+│   │   ├── report_2025-10-21_06-02.md
+│   │   └── report_2025-10-21_06-15.md
+│   ├── GOVERNANCE_BADGES.md
+│   ├── METRICS.md
+│   ├── PLAYGROUND.md
+│   ├── project-plan.yml
+│   ├── ROLES_ACCESS.md
+│   └── SIMULATOR.md
+├── init_db.sql
+├── logs
+├── Makefile
+├── migrations
+│   └── init_db.sql
+├── models
+│   └── versions
+├── ollama-data
+│   ├── id_ed25519
+│   ├── id_ed25519.pub
+│   └── models
+│       └── blobs
+├── ordnerstruktur.txt
+├── project_structure.txt
+├── prompts
+│   └── luna.yml
+├── README.md
+├── requirements.txt
+├── scripts
+│   ├── eval_metrics.py
+│   ├── healthcheck.py
+│   ├── setup_models.py
+│   ├── smoke_test.py
+│   ├── startup.py
+│   ├── test_local_stack.py
+│   └── train_pipeline.py
+└── tests
+    └── integration
+        └── test_api_health.py
+
+25 directories, 73 files

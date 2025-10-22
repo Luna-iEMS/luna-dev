@@ -1,116 +1,193 @@
+version: "3.9"
 
 services:
+  # =====================================================
+  # 🧠 API – FastAPI Backend
+  # =====================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file: [.env]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - .:/app
+      - ./data:/data
+      - ./logs:/logs
+      - ./models:/models
+      - ./ollama-data:/root/.ollama
+    depends_on:
+      db:
+        condition: service_started
+      qdrant:
+        condition: service_healthy
+      tika:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    command: >
+      bash -c "
+        echo '🚀 Initialisiere Luna IEMS ...';
+        set -e;
+        python -u scripts/startup.py || echo '⚠️ Startup-Skript beendet (nicht kritisch)';
+        echo '✅ Starte FastAPI-Service ...';
+        exec python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level info --reload
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    networks:
+      - luna-net
+
+  # =====================================================
+  # 🗄️ Datenbank – PostgreSQL
+  # =====================================================
   db:
     image: postgres:15
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-luna}
-    ports:
-      - "${DB_PORT:-5432}:5432"
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data/pgdata
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-luna}"]
-      interval: 15s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
-      retries: 10
-    networks: [luna-net]
+      retries: 5
+    networks:
+      - luna-net
 
+  # =====================================================
+  # 💾 Qdrant – Vektor-Datenbank
+  # =====================================================
   qdrant:
     image: qdrant/qdrant:v1.11.0
     restart: unless-stopped
     ports:
       - "${QDRANT_HTTP:-6333}:6333"
       - "${QDRANT_GRPC:-6334}:6334"
+    environment:
+      QDRANT__STORAGE__SYNC_DISABLED: "true"
+      QDRANT__STORAGE__WAL_CAPACITY_MB: "64"
+      QDRANT__STORAGE__WAL_SEGMENT_SIZE_MB: "128"
+      QDRANT__STORAGE__DISK_CACHE_MB: "4096"
+      QDRANT__LOG_LEVEL: "INFO"
+      QDRANT__SERVICE__API_KEY: ""
+      QDRANT__STORAGE__SNAPSHOTS_PATH: "/qdrant/storage/snapshots"
     volumes:
       - qdrant_data:/qdrant/storage
+      - ./models:/models:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:6333/readyz || exit 0"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-    networks: [luna-net]
+     test: ["CMD-SHELL", "curl -fs http://localhost:6333/dashboard || exit 0"]
+     interval: 30s
+     timeout: 5s
+     retries: 5
+     start_period: 120s
+     networks:
+      - luna-net
 
-  tika:
-    image: logicalspark/docker-tikaserver:latest
-    restart: unless-stopped
-    ports:
-      - "${TIKA_PORT:-9998}:9998"
-    # Healthcheck entschärft – Tika startet langsam, kein Abbruch nötig
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:9998/tika || exit 0"]
-      interval: 20s
-      timeout: 5s
-      retries: 5
-    networks: [luna-net]
-
+  # =====================================================
+  # 🧠 Ollama – LLM Runtime mit lokalem Cache
+  # =====================================================
   ollama:
     image: ollama/ollama:latest
-    restart: unless-stopped
+    restart: always
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     environment:
-      OLLAMA_HOST: "0.0.0.0"
+      OLLAMA_KEEP_ALIVE: "0"
+      OLLAMA_NUM_PARALLEL: "4"
+      REQUIRED_MODELS: "llama3.1:8b nomic-embed-text"
     volumes:
-      - ollama_data:/root/.ollama
-    # Kein Healthcheck -> OLLAMA startet langsam, sollte API nicht blockieren
-    networks: [luna-net]
+      - ./ollama-data:/root/.ollama
+      - ./scripts/start_ollama.sh:/start_ollama.sh:ro
+    entrypoint: ["/bin/sh", "/start_ollama.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - luna-net
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    env_file: [.env]
-    environment:
-      DB_HOST: db
-      QDRANT_HOST: qdrant
-      OLLAMA_HOST: ollama
-      TIKA_HOST: tika
+  # =====================================================
+  # 📑 Apache Tika – Dokumentenparser
+  # =====================================================
+  tika:
+    image: logicalspark/docker-tikaserver:latest
+    restart: always
     ports:
-      - "${API_PORT:-8000}:8000"
-    volumes:
-      - data:/data
-      - models:/models
-      - logs:/logs
-    depends_on:
-      - db
-      - qdrant
-      - tika
-      - ollama
-    networks: [luna-net]
+      - "${TIKA_PORT:-9998}:9998"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9998/tika"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - luna-net
 
+  # =====================================================
+  # 🧩 Worker – Hintergrundprozesse & Training
+  # =====================================================
   worker:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    command: ["tail", "-f", "/dev/null"]
     env_file: [.env]
-    environment:
-      DB_HOST: db
-      QDRANT_HOST: qdrant
-      OLLAMA_HOST: ollama
-      TIKA_HOST: tika
-    command: ["python", "-u", "scripts/train_pipeline.py"]
-    volumes:
-      - data:/data
-      - models:/models
-      - logs:/logs
     depends_on:
-      - db
-      - qdrant
-      - tika
-      - ollama
-    networks: [luna-net]
+      db:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      tika:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+      - ./models:/models
+      - ./ollama-data:/root/.ollama
+    networks:
+      - luna-net
 
-volumes:
-  pgdata: {}
-  qdrant_data: {}
-  ollama_data: {}
-  data: {}
-  models: {}
-  logs: {}
+  # =====================================================
+  # 🧩 Weekly Updater – automatischer Wartungsjob
+  # =====================================================
+  updater:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: ["sh", "-c", "bash /app/scripts/update_all.sh"]
+    env_file: [.env]
+    volumes:
+      - .:/app
+      - ./ollama-data:/root/.ollama
+      - ./logs:/app/logs
+    networks:
+      - luna-net
+    restart: "no"
 
+# =====================================================
+# 🔗 Netzwerke & Volumes
+# =====================================================
 networks:
   luna-net:
     driver: bridge
+
+volumes:
+  db_data:
+  qdrant_data:
+  ollama_data:
+  models:
+  logs:
+  data:
+

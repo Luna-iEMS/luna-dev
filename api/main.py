@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routers import ingest, rag_api, recommend, data_market, data_smartmeter, admin
+from api.routers import ingest, rag_api, recommend, data_market, data_smartmeter, admin, system
 from api.services import qdrant
 
 app = FastAPI(title="🌙 Luna IEMS API", version="1.0")
@@ -24,3 +24,4 @@ app.include_router(recommend.router)
 app.include_router(data_market.router)
 app.include_router(data_smartmeter.router)
 app.include_router(admin.router)
+app.include_router(system.router)

@@ -1,2 +1,23 @@
 .venv/
 .venv/
+# 🔒 Ollama Cache & Modelldaten
+ollama-data/
+!ollama-data/.gitkeep
+
+# 🧠 Qdrant / Postgres Daten
+qdrant_data/
+db_data/
+
+# 🧰 Systemdateien
+__pycache__/
+*.log
+*.pid
+*.pyc
+
+# 🧩 Editor
+.vscode/
+.idea/
+
+# 🔧 Container Artefakte
+*.env
+*.bak

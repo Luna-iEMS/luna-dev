@@ -1,0 +1,78 @@
+.
+├── api
+│   ├── main.py
+│   ├── routers
+│   │   ├── admin.py
+│   │   ├── data_market.py
+│   │   ├── data_smartmeter.py
+│   │   ├── ingest.py
+│   │   ├── __init__.py
+│   │   ├── qdrant.py
+│   │   ├── rag_api.py
+│   │   └── recommend.py
+│   └── services
+│       ├── db.py
+│       ├── embed.py
+│       ├── qdrant.py
+│       ├── rag.py
+│       └── tika.py
+├── data
+│   ├── docs
+│   │   └── test2.txt
+│   └── git
+│       ├── GOVERNANCE_BADGES.md
+│       ├── METRICS.md
+│       ├── PLAYGROUND.md
+│       ├── ROLES_ACCESS.md
+│       └── SIMULATOR.md
+├── docker-compose.yml
+├── Dockerfile.dev
+├── docs
+│   ├── ci_reports
+│   │   ├── report_2025-10-20_16-43.md
+│   │   ├── report_2025-10-20_16-55.md
+│   │   ├── report_2025-10-20_17-14.md
+│   │   ├── report_2025-10-20_17-18.md
+│   │   ├── report_2025-10-21_05-03.md
+│   │   ├── report_2025-10-21_05-20.md
+│   │   ├── report_2025-10-21_05-32.md
+│   │   ├── report_2025-10-21_05-43.md
+│   │   ├── report_2025-10-21_06-02.md
+│   │   └── report_2025-10-21_06-15.md
+│   ├── GOVERNANCE_BADGES.md
+│   ├── METRICS.md
+│   ├── PLAYGROUND.md
+│   ├── project-plan.yml
+│   ├── ROLES_ACCESS.md
+│   └── SIMULATOR.md
+├── .env
+├── .env.dev
+├── .github
+│   ├── project.yml
+│   ├── release-drafter.yml
+│   └── workflows
+│       ├── integration-test.yml
+│       ├── project-sync.yml
+│       ├── release-drafter.yml
+│       └── smoke-test.yml
+├── .gitignore
+├── init_db.sql
+├── migrations
+│   └── init_db.sql
+├── project_structure.txt
+├── prompts
+│   └── luna.yml
+├── README.md
+├── requirements.txt
+├── scripts
+│   ├── healthcheck.py
+│   ├── smoke_test.py
+│   ├── test_local_stack.py
+│   └── train_pipeline.py
+├── tests
+│   └── integration
+│       └── test_api_health.py
+└── .vscode
+    └── settings.json
+
+17 directories, 59 files
